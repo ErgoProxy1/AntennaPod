@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import de.danoeh.antennapod.core.R;
 import de.danoeh.antennapod.core.event.DownloadLogEvent;
+import de.danoeh.antennapod.core.service.download.EpisodeDownloadService;
 import de.danoeh.antennapod.event.FavoritesEvent;
 import de.danoeh.antennapod.event.FeedItemEvent;
 import de.danoeh.antennapod.event.FeedListUpdateEvent;
@@ -333,7 +334,7 @@ public class DBWriter {
 
             adapter.close();
             if (performAutoDownload) {
-                DBTasks.autodownloadUndownloadedItems(context);
+                EpisodeDownloadService.autodownloadUndownloadedItems(context);
             }
 
         });
@@ -424,7 +425,7 @@ public class DBWriter {
             }
             adapter.close();
             if (performAutoDownload) {
-                DBTasks.autodownloadUndownloadedItems(context);
+                EpisodeDownloadService.autodownloadUndownloadedItems(context);
             }
         });
     }
@@ -533,7 +534,7 @@ public class DBWriter {
         }
         adapter.close();
         if (performAutoDownload) {
-            DBTasks.autodownloadUndownloadedItems(context);
+            EpisodeDownloadService.autodownloadUndownloadedItems(context);
         }
     }
 

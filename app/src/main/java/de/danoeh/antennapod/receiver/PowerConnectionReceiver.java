@@ -8,6 +8,7 @@ import android.util.Log;
 import de.danoeh.antennapod.core.ClientConfig;
 import de.danoeh.antennapod.core.preferences.UserPreferences;
 import de.danoeh.antennapod.core.service.download.DownloadService;
+import de.danoeh.antennapod.core.service.download.EpisodeDownloadService;
 import de.danoeh.antennapod.core.storage.DBTasks;
 
 // modified from http://developer.android.com/training/monitoring-device-state/battery-monitoring.html
@@ -32,7 +33,7 @@ public class PowerConnectionReceiver extends BroadcastReceiver {
             // downloading now. They shouldn't mind.
             // autodownloadUndownloadedItems will make sure we're on the right wifi networks,
             // etc... so we don't have to worry about it.
-            DBTasks.autodownloadUndownloadedItems(context);
+            EpisodeDownloadService.autodownloadUndownloadedItems(context);
         } else {
             // if we're not supposed to be auto-downloading when we're not charging, stop it
             if (!UserPreferences.isEnableAutodownloadOnBattery()) {

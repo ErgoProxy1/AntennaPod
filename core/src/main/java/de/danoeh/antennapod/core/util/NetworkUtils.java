@@ -19,6 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import de.danoeh.antennapod.core.service.download.DownloadService;
+import de.danoeh.antennapod.core.service.download.EpisodeDownloadService;
 import de.danoeh.antennapod.core.storage.DBTasks;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.core.preferences.UserPreferences;
@@ -233,7 +234,7 @@ public class NetworkUtils {
     public static void networkChangedDetected() {
         if (NetworkUtils.isAutoDownloadAllowed()) {
             Log.d(TAG, "auto-dl network available, starting auto-download");
-            DBTasks.autodownloadUndownloadedItems(context);
+            EpisodeDownloadService.autodownloadUndownloadedItems(context);
         } else { // if new network is Wi-Fi, finish ongoing downloads,
             // otherwise cancel all downloads
             if (NetworkUtils.isNetworkRestricted()) {

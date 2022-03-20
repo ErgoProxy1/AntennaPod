@@ -51,24 +51,6 @@ import de.danoeh.antennapod.net.sync.model.EpisodeActionBuilder;
 public final class DBTasks {
     private static final String TAG = "DBTasks";
 
-    private static final String PREF_NAME = "dbtasks";
-    private static final String PREF_LAST_REFRESH = "last_refresh";
-
-    /**
-     * Executor service used by the autodownloadUndownloadedEpisodes method.
-     */
-    private static final ExecutorService autodownloadExec;
-
-    private static AutomaticDownloadAlgorithm downloadAlgorithm = new AutomaticDownloadAlgorithm();
-
-    static {
-        autodownloadExec = Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r);
-            t.setPriority(Thread.MIN_PRIORITY);
-            return t;
-        });
-    }
-
     private DBTasks() {
     }
 
@@ -105,70 +87,6 @@ public final class DBTasks {
     }
 
     /**
-     * Refreshes all feeds.
-     * It must not be from the main thread.
-     * This method might ignore subsequent calls if it is still
-     * enqueuing Feeds for download from a previous call
-     *
-     * @param context  Might be used for accessing the database
-     * @param initiatedByUser a boolean indicating if the refresh was triggered by user action.
-     */
-    public static void refreshAllFeeds(final Context context, boolean initiatedByUser) {
-        DownloadService.refreshAllFeeds(context, initiatedByUser);
-
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, MODE_PRIVATE);
-        prefs.edit().putLong(PREF_LAST_REFRESH, System.currentTimeMillis()).apply();
-
-        SyncService.sync(context);
-        // Note: automatic download of episodes will be done but not here.
-        // Instead it is done after all feeds have been refreshed (asynchronously),
-        // in DownloadService.onDestroy()
-        // See Issue #2577 for the details of the rationale
-    }
-
-
-
-    /**
-     * Queues the next page of this Feed for download. The given Feed has to be a paged
-     * Feed (isPaged()=true) and must contain a nextPageLink.
-     *
-     * @param context      Used for requesting the download.
-     * @param feed         The feed whose next page should be loaded.
-     * @param loadAllPages True if any subsequent pages should also be loaded, false otherwise.
-     */
-    public static void loadNextPageOfFeed(final Context context, Feed feed, boolean loadAllPages) {
-        if (feed.isPaged() && feed.getNextPageLink() != null) {
-            int pageNr = feed.getPageNr() + 1;
-            Feed nextFeed = new Feed(feed.getNextPageLink(), null, feed.getTitle() + "(" + pageNr + ")");
-            nextFeed.setPageNr(pageNr);
-            nextFeed.setPaged(true);
-            nextFeed.setId(feed.getId());
-
-            DownloadRequest.Builder builder = DownloadRequestCreator.create(nextFeed);
-            builder.loadAllPages(loadAllPages);
-            DownloadService.download(context, false, builder.build());
-        } else {
-            Log.e(TAG, "loadNextPageOfFeed: Feed was either not paged or contained no nextPageLink");
-        }
-    }
-
-    public static void forceRefreshFeed(Context context, Feed feed, boolean initiatedByUser) {
-        forceRefreshFeed(context, feed, false, initiatedByUser);
-    }
-
-    public static void forceRefreshCompleteFeed(final Context context, final Feed feed) {
-        forceRefreshFeed(context, feed, true, true);
-    }
-
-    private static void forceRefreshFeed(Context context, Feed feed, boolean loadAllPages, boolean initiatedByUser) {
-        DownloadRequest.Builder builder = DownloadRequestCreator.create(feed);
-        builder.setInitiatedByUser(initiatedByUser);
-        builder.setForce(true);
-        builder.loadAllPages(loadAllPages);
-        DownloadService.download(context, false, builder.build());
-    }
-
-    /**
      * Notifies the database about a missing FeedMedia file. This method will correct the FeedMedia object's
      * values in the DB and send a FeedItemEvent.
      */
@@ -194,69 +112,6 @@ public final class DBTasks {
             DBWriter.addQueueItem(context, false, itemsToEnqueue.toArray(new FeedItem[0])).get();
         }
         return itemsToEnqueue;
-    }
-
-    /**
-     * Looks for non-downloaded episodes in the queue or list of unread items and request a download if
-     * 1. Network is available
-     * 2. The device is charging or the user allows auto download on battery
-     * 3. There is free space in the episode cache
-     * This method is executed on an internal single thread executor.
-     *
-     * @param context  Used for accessing the DB.
-     * @return A Future that can be used for waiting for the methods completion.
-     */
-    public static Future<?> autodownloadUndownloadedItems(final Context context) {
-        Log.d(TAG, "autodownloadUndownloadedItems");
-        return autodownloadExec.submit(downloadAlgorithm.autoDownloadUndownloadedItems(context));
-    }
-
-    /**
-     * For testing purpose only.
-     */
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    public static void setDownloadAlgorithm(AutomaticDownloadAlgorithm newDownloadAlgorithm) {
-        downloadAlgorithm = newDownloadAlgorithm;
-    }
-
-    /**
-     * Removed downloaded episodes outside of the queue if the episode cache is full. Episodes with a smaller
-     * 'playbackCompletionDate'-value will be deleted first.
-     * <p/>
-     * This method should NOT be executed on the GUI thread.
-     *
-     * @param context Used for accessing the DB.
-     */
-    public static void performAutoCleanup(final Context context) {
-        UserPreferences.getEpisodeCleanupAlgorithm().performCleanup(context);
-    }
-
-    /**
-     * Returns the successor of a FeedItem in the queue.
-     *
-     * @param itemId  ID of the FeedItem
-     * @param queue   Used for determining the successor of the item. If this parameter is null, the method will load
-     *                the queue from the database in the same thread.
-     * @return Successor of the FeedItem or null if the FeedItem is not in the queue or has no successor.
-     */
-    public static FeedItem getQueueSuccessorOfItem(final long itemId, List<FeedItem> queue) {
-        FeedItem result = null;
-        if (queue == null) {
-            queue = DBReader.getQueue();
-        }
-        if (queue != null) {
-            Iterator<FeedItem> iterator = queue.iterator();
-            while (iterator.hasNext()) {
-                FeedItem item = iterator.next();
-                if (item.getId() == itemId) {
-                    if (iterator.hasNext()) {
-                        result = iterator.next();
-                    }
-                    break;
-                }
-            }
-        }
-        return result;
     }
 
     private static Feed searchFeedByIdentifyingValueOrID(PodDBAdapter adapter,

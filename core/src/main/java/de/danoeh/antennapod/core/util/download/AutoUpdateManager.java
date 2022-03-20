@@ -22,6 +22,7 @@ import de.danoeh.antennapod.core.R;
 import de.danoeh.antennapod.core.preferences.UserPreferences;
 import de.danoeh.antennapod.core.service.FeedUpdateWorker;
 import de.danoeh.antennapod.core.storage.DBTasks;
+import de.danoeh.antennapod.core.util.FeedUtils;
 import de.danoeh.antennapod.core.util.NetworkUtils;
 
 public class AutoUpdateManager {
@@ -141,7 +142,7 @@ public class AutoUpdateManager {
     }
 
     private static void startRefreshAllFeeds(final Context context) {
-        new Thread(() -> DBTasks.refreshAllFeeds(
+        new Thread(() -> FeedUtils.refreshAllFeeds(
                 context.getApplicationContext(), true), "ManualRefreshAllFeeds").start();
     }
 

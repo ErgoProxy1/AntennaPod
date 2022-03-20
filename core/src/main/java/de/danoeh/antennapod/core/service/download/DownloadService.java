@@ -273,7 +273,7 @@ public class DownloadService extends Service {
         downloads.clear();
 
         // start auto download in case anything new has shown up
-        DBTasks.autodownloadUndownloadedItems(getApplicationContext());
+        EpisodeDownloadService.autodownloadUndownloadedItems(getApplicationContext());
     }
 
     /**

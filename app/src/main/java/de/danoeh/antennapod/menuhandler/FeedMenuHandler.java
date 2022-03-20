@@ -14,6 +14,7 @@ import java.util.Set;
 
 import de.danoeh.antennapod.R;
 import de.danoeh.antennapod.core.dialog.ConfirmationDialog;
+import de.danoeh.antennapod.core.util.FeedUtils;
 import de.danoeh.antennapod.model.feed.Feed;
 import de.danoeh.antennapod.core.storage.DBTasks;
 import de.danoeh.antennapod.core.storage.DBWriter;
@@ -58,9 +59,9 @@ public class FeedMenuHandler {
     public static boolean onOptionsItemClicked(final Context context, final MenuItem item, final Feed selectedFeed) {
         final int itemId = item.getItemId();
         if (itemId == R.id.refresh_item) {
-            DBTasks.forceRefreshFeed(context, selectedFeed, true);
+            FeedUtils.forceRefreshFeed(context, selectedFeed, true);
         } else if (itemId == R.id.refresh_complete_item) {
-            DBTasks.forceRefreshCompleteFeed(context, selectedFeed);
+            FeedUtils.forceRefreshCompleteFeed(context, selectedFeed);
         } else if (itemId == R.id.sort_items) {
             showSortDialog(context, selectedFeed);
         } else if (itemId == R.id.filter_items) {

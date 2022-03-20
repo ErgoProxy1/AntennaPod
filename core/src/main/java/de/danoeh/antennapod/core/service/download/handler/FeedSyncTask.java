@@ -2,6 +2,7 @@ package de.danoeh.antennapod.core.service.download.handler;
 
 import android.content.Context;
 
+import de.danoeh.antennapod.core.util.FeedUtils;
 import de.danoeh.antennapod.model.feed.Feed;
 import de.danoeh.antennapod.core.service.download.DownloadRequest;
 import de.danoeh.antennapod.core.service.download.DownloadStatus;
@@ -35,7 +36,7 @@ public class FeedSyncTask {
         final Feed feed = result.feed;
         if (loadAllPages && feed.getNextPageLink() != null) {
             feed.setId(savedFeed.getId());
-            DBTasks.loadNextPageOfFeed(context, feed, true);
+            FeedUtils.loadNextPageOfFeed(context, feed, true);
         }
         return true;
     }
