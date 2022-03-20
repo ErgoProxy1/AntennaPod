@@ -22,6 +22,7 @@ import de.danoeh.antennapod.core.util.DownloadError;
 import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.net.sync.model.EpisodeAction;
+import de.danoeh.antennapod.net.sync.model.EpisodeActionBuilder;
 
 /**
  * Handles a completed media download.
@@ -101,7 +102,7 @@ public class MediaDownloadedHandler implements Runnable {
         }
 
         if (item != null) {
-            EpisodeAction action = new EpisodeAction.Builder(item, EpisodeAction.DOWNLOAD)
+            EpisodeAction action = new EpisodeActionBuilder.Builder(item, EpisodeAction.DOWNLOAD)
                     .currentTimestamp()
                     .build();
             SynchronizationQueueSink.enqueueEpisodeActionIfSynchronizationIsActive(context, action);

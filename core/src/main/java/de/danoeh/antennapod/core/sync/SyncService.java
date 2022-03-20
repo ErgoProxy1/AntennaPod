@@ -48,6 +48,7 @@ import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.net.sync.gpoddernet.GpodnetService;
 import de.danoeh.antennapod.net.sync.model.EpisodeAction;
+import de.danoeh.antennapod.net.sync.model.EpisodeActionBuilder;
 import de.danoeh.antennapod.net.sync.model.EpisodeActionChanges;
 import de.danoeh.antennapod.net.sync.model.ISyncService;
 import de.danoeh.antennapod.net.sync.model.SubscriptionChanges;
@@ -215,7 +216,7 @@ public class SyncService extends Worker {
                 if (media == null) {
                     continue;
                 }
-                EpisodeAction played = new EpisodeAction.Builder(item, EpisodeAction.PLAY)
+                EpisodeAction played = new EpisodeActionBuilder.Builder(item, EpisodeAction.PLAY)
                         .currentTimestamp()
                         .started(media.getDuration() / 1000)
                         .position(media.getDuration() / 1000)

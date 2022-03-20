@@ -26,6 +26,7 @@ import de.danoeh.antennapod.dialog.ShareDialog;
 import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.net.sync.model.EpisodeAction;
+import de.danoeh.antennapod.net.sync.model.EpisodeActionBuilder;
 
 /**
  * Handles interactions with the FeedItemMenu.
@@ -155,7 +156,7 @@ public class FeedItemMenuHandler {
                 FeedMedia media = selectedItem.getMedia();
                 // not all items have media, Gpodder only cares about those that do
                 if (media != null) {
-                    EpisodeAction actionPlay = new EpisodeAction.Builder(selectedItem, EpisodeAction.PLAY)
+                    EpisodeAction actionPlay = new EpisodeActionBuilder.Builder(selectedItem, EpisodeAction.PLAY)
                             .currentTimestamp()
                             .started(media.getDuration() / 1000)
                             .position(media.getDuration() / 1000)
@@ -168,7 +169,7 @@ public class FeedItemMenuHandler {
             selectedItem.setPlayed(false);
             DBWriter.markItemPlayed(selectedItem, FeedItem.UNPLAYED, false);
             if (selectedItem.getMedia() != null) {
-                EpisodeAction actionNew = new EpisodeAction.Builder(selectedItem, EpisodeAction.NEW)
+                EpisodeAction actionNew = new EpisodeActionBuilder.Builder(selectedItem, EpisodeAction.NEW)
                         .currentTimestamp()
                         .build();
                 SynchronizationQueueSink.enqueueEpisodeActionIfSynchronizationIsActive(context, actionNew);

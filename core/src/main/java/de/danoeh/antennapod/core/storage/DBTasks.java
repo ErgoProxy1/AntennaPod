@@ -43,6 +43,7 @@ import de.danoeh.antennapod.model.feed.Feed;
 import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.net.sync.model.EpisodeAction;
+import de.danoeh.antennapod.net.sync.model.EpisodeActionBuilder;
 
 /**
  * Provides methods for doing common tasks that use DBReader and DBWriter.
@@ -394,7 +395,7 @@ public final class DBTasks {
                         oldItem.setItemIdentifier(item.getItemIdentifier());
 
                         if (oldItem.isPlayed() && oldItem.getMedia() != null) {
-                            EpisodeAction action = new EpisodeAction.Builder(oldItem, EpisodeAction.PLAY)
+                            EpisodeAction action = new EpisodeActionBuilder.Builder(oldItem, EpisodeAction.PLAY)
                                     .currentTimestamp()
                                     .started(oldItem.getMedia().getDuration() / 1000)
                                     .position(oldItem.getMedia().getDuration() / 1000)

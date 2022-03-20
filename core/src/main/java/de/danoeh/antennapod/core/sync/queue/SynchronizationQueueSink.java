@@ -7,6 +7,7 @@ import de.danoeh.antennapod.core.sync.SyncService;
 import de.danoeh.antennapod.core.sync.SynchronizationSettings;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.net.sync.model.EpisodeAction;
+import de.danoeh.antennapod.net.sync.model.EpisodeActionBuilder;
 
 public class SynchronizationQueueSink {
 
@@ -55,7 +56,7 @@ public class SynchronizationQueueSink {
         if (media.getStartPosition() < 0 || (!completed && media.getStartPosition() >= media.getPosition())) {
             return;
         }
-        EpisodeAction action = new EpisodeAction.Builder(media.getItem(), EpisodeAction.PLAY)
+        EpisodeAction action = new EpisodeActionBuilder.Builder(media.getItem(), EpisodeAction.PLAY)
                 .currentTimestamp()
                 .started(media.getStartPosition() / 1000)
                 .position((completed ? media.getDuration() : media.getPosition()) / 1000)

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 
 import de.danoeh.antennapod.core.sync.SynchronizationSettings;
 import de.danoeh.antennapod.net.sync.model.EpisodeAction;
+import de.danoeh.antennapod.net.sync.model.EpisodeActionBuilder;
 
 public class SynchronizationQueueStorage {
 
@@ -30,7 +31,7 @@ public class SynchronizationQueueStorage {
                     .getString(QUEUED_EPISODE_ACTIONS, "[]");
             JSONArray queue = new JSONArray(json);
             for (int i = 0; i < queue.length(); i++) {
-                actions.add(EpisodeAction.readFromJsonObject(queue.getJSONObject(i)));
+                actions.add(EpisodeActionBuilder.readFromJsonObject(queue.getJSONObject(i)));
             }
         } catch (JSONException e) {
             e.printStackTrace();

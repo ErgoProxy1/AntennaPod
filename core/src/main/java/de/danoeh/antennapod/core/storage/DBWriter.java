@@ -50,6 +50,7 @@ import de.danoeh.antennapod.model.feed.FeedPreferences;
 import de.danoeh.antennapod.model.feed.SortOrder;
 import de.danoeh.antennapod.model.playback.Playable;
 import de.danoeh.antennapod.net.sync.model.EpisodeAction;
+import de.danoeh.antennapod.net.sync.model.EpisodeActionBuilder;
 
 /**
  * Provides methods for writing data to AntennaPod's database.
@@ -137,7 +138,7 @@ public class DBWriter {
 
             // Gpodder: queue delete action for synchronization
             FeedItem item = media.getItem();
-            EpisodeAction action = new EpisodeAction.Builder(item, EpisodeAction.DELETE)
+            EpisodeAction action = new EpisodeActionBuilder.Builder(item, EpisodeAction.DELETE)
                     .currentTimestamp()
                     .build();
             SynchronizationQueueSink.enqueueEpisodeActionIfSynchronizationIsActive(context, action);

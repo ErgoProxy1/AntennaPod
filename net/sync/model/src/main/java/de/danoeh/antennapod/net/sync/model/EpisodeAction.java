@@ -19,7 +19,6 @@ import de.danoeh.antennapod.model.feed.FeedItem;
 
 public class EpisodeAction {
     private static final String TAG = "EpisodeAction";
-    private static final String PATTERN_ISO_DATEFORMAT = "yyyy-MM-dd'T'HH:mm:ss";
     public static final Action NEW = Action.NEW;
     public static final Action DOWNLOAD = Action.DOWNLOAD;
     public static final Action PLAY = Action.PLAY;
@@ -34,7 +33,7 @@ public class EpisodeAction {
     private final int position;
     private final int total;
 
-    private EpisodeAction(Builder builder) {
+    public EpisodeAction(EpisodeActionBuilder.Builder builder) {
         this.podcast = builder.podcast;
         this.episode = builder.episode;
         this.guid = builder.guid;
@@ -43,55 +42,6 @@ public class EpisodeAction {
         this.started = builder.started;
         this.position = builder.position;
         this.total = builder.total;
-    }
-
-    /**
-     * Create an episode action object from JSON representation. Mandatory fields are "podcast",
-     * "episode" and "action".
-     *
-     * @param object JSON representation
-     * @return episode action object, or null if mandatory values are missing
-     */
-    public static EpisodeAction readFromJsonObject(JSONObject object) {
-        String podcast = object.optString("podcast", null);
-        String episode = object.optString("episode", null);
-        String actionString = object.optString("action", null);
-        if (TextUtils.isEmpty(podcast) || TextUtils.isEmpty(episode) || TextUtils.isEmpty(actionString)) {
-            return null;
-        }
-        EpisodeAction.Action action;
-        try {
-            action = EpisodeAction.Action.valueOf(actionString.toUpperCase(Locale.US));
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-        EpisodeAction.Builder builder = new EpisodeAction.Builder(podcast, episode, action);
-        String utcTimestamp = object.optString("timestamp", null);
-        if (!TextUtils.isEmpty(utcTimestamp)) {
-            try {
-                SimpleDateFormat parser = new SimpleDateFormat(PATTERN_ISO_DATEFORMAT, Locale.US);
-                parser.setTimeZone(TimeZone.getTimeZone("UTC"));
-                builder.timestamp(parser.parse(utcTimestamp));
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-        }
-        String guid = object.optString("guid", null);
-        if (!TextUtils.isEmpty(guid)) {
-            builder.guid(guid);
-        }
-        if (action == EpisodeAction.Action.PLAY) {
-            int started = object.optInt("started", -1);
-            int position = object.optInt("position", -1);
-            int total = object.optInt("total", -1);
-            if (started >= 0 && position > 0 && total > 0) {
-                builder
-                        .started(started)
-                        .position(position)
-                        .total(total);
-            }
-        }
-        return builder.build();
     }
 
     public String getPodcast() {
@@ -222,72 +172,6 @@ public class EpisodeAction {
 
     public enum Action {
         NEW, DOWNLOAD, PLAY, DELETE
-    }
-
-    public static class Builder {
-
-        // mandatory
-        private final String podcast;
-        private final String episode;
-        private final Action action;
-
-        // optional
-        private Date timestamp;
-        private int started = -1;
-        private int position = -1;
-        private int total = -1;
-        private String guid;
-
-        public Builder(FeedItem item, Action action) {
-            this(item.getFeed().getDownload_url(), item.getMedia().getDownload_url(), action);
-            this.guid(item.getItemIdentifier());
-        }
-
-        public Builder(String podcast, String episode, Action action) {
-            this.podcast = podcast;
-            this.episode = episode;
-            this.action = action;
-        }
-
-        public Builder timestamp(Date timestamp) {
-            this.timestamp = timestamp;
-            return this;
-        }
-
-        public Builder guid(String guid) {
-            this.guid = guid;
-            return this;
-        }
-
-        public Builder currentTimestamp() {
-            return timestamp(new Date());
-        }
-
-        public Builder started(int seconds) {
-            if (action == Action.PLAY) {
-                this.started = seconds;
-            }
-            return this;
-        }
-
-        public Builder position(int seconds) {
-            if (action == Action.PLAY) {
-                this.position = seconds;
-            }
-            return this;
-        }
-
-        public Builder total(int seconds) {
-            if (action == Action.PLAY) {
-                this.total = seconds;
-            }
-            return this;
-        }
-
-        public EpisodeAction build() {
-            return new EpisodeAction(this);
-        }
-
     }
 
 }

@@ -11,6 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import de.danoeh.antennapod.net.sync.model.EpisodeAction;
+import de.danoeh.antennapod.net.sync.model.EpisodeActionBuilder;
 import de.danoeh.antennapod.net.sync.model.EpisodeActionChanges;
 import de.danoeh.antennapod.net.sync.model.SubscriptionChanges;
 
@@ -50,7 +51,7 @@ public class ResponseMapper {
         JSONArray jsonActions = object.getJSONArray("actions");
         for (int i = 0; i < jsonActions.length(); i++) {
             JSONObject jsonAction = jsonActions.getJSONObject(i);
-            EpisodeAction episodeAction = EpisodeAction.readFromJsonObject(jsonAction);
+            EpisodeAction episodeAction = EpisodeActionBuilder.readFromJsonObject(jsonAction);
             if (episodeAction != null) {
                 episodeActions.add(episodeAction);
             }

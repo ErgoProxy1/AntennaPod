@@ -197,7 +197,7 @@ public class ItemFragment extends Fragment {
                 .setWidthRatio(1.0f)
                 .setMarginLeft(8)
                 .setMarginRight(8)
-                .setBackgroundColor(ThemeUtils.getColorFromAttr(getContext(), R.attr.colorSecondary))
+                .setBackgroundColor(ThemeUtils.getColorFromAttr(getContext(), R.attr.foregroundColor))
                 .setBalloonAnimation(BalloonAnimation.OVERSHOOT)
                 .setLayout(R.layout.popup_bubble_view)
                 .setDismissWhenTouchOutside(true)
