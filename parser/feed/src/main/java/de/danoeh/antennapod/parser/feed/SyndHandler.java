@@ -7,6 +7,9 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import java.util.HashMap;
+import java.util.function.Function;
+
 import de.danoeh.antennapod.model.feed.Feed;
 import de.danoeh.antennapod.parser.feed.namespace.Content;
 import de.danoeh.antennapod.parser.feed.namespace.DublinCore;
@@ -25,11 +28,39 @@ public class SyndHandler extends DefaultHandler {
     private static final String DEFAULT_PREFIX = "";
     public final HandlerState state;
 
+    private HashMap<String, HashMap<String, PrefixMappingInfo>> prefixMappings;
+
+    private class PrefixMappingInfo {
+        String logText;
+        Class prefixClass;
+
+        PrefixMappingInfo(String logText, Class prefixClass){
+            this.logText = logText;
+            this.prefixClass = prefixClass;
+        }
+    }
+
     public SyndHandler(Feed feed, TypeGetter.Type type) {
         state = new HandlerState(feed);
         if (type == TypeGetter.Type.RSS20 || type == TypeGetter.Type.RSS091) {
             state.defaultNamespaces.push(new Rss20());
         }
+
+        prefixMappings = new HashMap<>();
+        prefixMappings.put(Atom.NSURI, new HashMap<>());
+        prefixMappings.get(Atom.NSURI).put(Atom.NSTAG, new PrefixMappingInfo("Recognized Atom namespace", Atom.class));
+        prefixMappings.put(Content.NSURI, new HashMap<>());
+        prefixMappings.get(Content.NSURI).put(Content.NSTAG, new PrefixMappingInfo("Recognized Content namespace", Content.class));
+        prefixMappings.put(Itunes.NSURI, new HashMap<>());
+        prefixMappings.get(Itunes.NSURI).put(Itunes.NSTAG, new PrefixMappingInfo("Recognized ITunes namespace", Itunes.class));
+        prefixMappings.put(SimpleChapters.NSURI, new HashMap<>());
+        prefixMappings.get(SimpleChapters.NSURI).put(SimpleChapters.NSTAG, new PrefixMappingInfo("Recognized SimpleChapters namespace", SimpleChapters.class));
+        prefixMappings.put(Media.NSURI, new HashMap<>());
+        prefixMappings.get(Media.NSURI).put(Media.NSTAG, new PrefixMappingInfo("Recognized Media namespace", Media.class));
+        prefixMappings.put(DublinCore.NSURI, new HashMap<>());
+        prefixMappings.get(DublinCore.NSURI).put(DublinCore.NSTAG, new PrefixMappingInfo("Recognized DublinCore namespace", DublinCore.class));
+        prefixMappings.put(PodcastIndex.NSURI, new HashMap<>());
+        prefixMappings.get(PodcastIndex.NSURI).put(PodcastIndex.NSTAG, new PrefixMappingInfo("Recognized PodcastIndex namespace", PodcastIndex.class));
     }
 
     @Override
@@ -82,39 +113,29 @@ public class SyndHandler extends DefaultHandler {
             throws SAXException {
         // Find the right namespace
         if (!state.namespaces.containsKey(uri)) {
-            if (uri.equals(Atom.NSURI)) {
-                if (prefix.equals(DEFAULT_PREFIX)) {
+            HashMap<String, PrefixMappingInfo> uriInfo = prefixMappings.get(uri);
+            if(uriInfo != null){
+                if (isDefaultNamespace(uri, prefix)) {
                     state.defaultNamespaces.push(new Atom());
-                } else if (prefix.equals(Atom.NSTAG)) {
-                    state.namespaces.put(uri, new Atom());
-                    Log.d(TAG, "Recognized Atom namespace");
+                } else {
+                    PrefixMappingInfo prefixInfo = uriInfo.get(prefix);
+                    if(prefixInfo != null){
+                        try {
+                            state.namespaces.put(uri, (Namespace)prefixInfo.prefixClass.newInstance());
+                        } catch (IllegalAccessException e) {
+                            e.printStackTrace();
+                        } catch (InstantiationException e) {
+                            e.printStackTrace();
+                        }
+                        Log.d(TAG, prefixInfo.logText);
+                    }
                 }
-            } else if (uri.equals(Content.NSURI)
-                    && prefix.equals(Content.NSTAG)) {
-                state.namespaces.put(uri, new Content());
-                Log.d(TAG, "Recognized Content namespace");
-            } else if (uri.equals(Itunes.NSURI)
-                    && prefix.equals(Itunes.NSTAG)) {
-                state.namespaces.put(uri, new Itunes());
-                Log.d(TAG, "Recognized ITunes namespace");
-            } else if (uri.equals(SimpleChapters.NSURI)
-                    && prefix.matches(SimpleChapters.NSTAG)) {
-                state.namespaces.put(uri, new SimpleChapters());
-                Log.d(TAG, "Recognized SimpleChapters namespace");
-            } else if (uri.equals(Media.NSURI)
-                    && prefix.equals(Media.NSTAG)) {
-                state.namespaces.put(uri, new Media());
-                Log.d(TAG, "Recognized media namespace");
-            } else if (uri.equals(DublinCore.NSURI)
-                    && prefix.equals(DublinCore.NSTAG)) {
-                state.namespaces.put(uri, new DublinCore());
-                Log.d(TAG, "Recognized DublinCore namespace");
-            } else if (uri.equals(PodcastIndex.NSURI) || uri.equals(PodcastIndex.NSURI2)
-                    && prefix.equals(PodcastIndex.NSTAG)) {
-                state.namespaces.put(uri, new PodcastIndex());
-                Log.d(TAG, "Recognized PodcastIndex namespace");
             }
         }
+    }
+
+    private boolean isDefaultNamespace(String uri, String prefix){
+        return prefix.equals(DEFAULT_PREFIX) && uri.equals(Atom.NSURI);
     }
 
     private Namespace getHandlingNamespace(String uri, String qualifiedName) {
