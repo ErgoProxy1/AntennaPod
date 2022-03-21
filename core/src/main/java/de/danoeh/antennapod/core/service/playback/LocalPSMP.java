@@ -209,7 +209,7 @@ public class LocalPSMP extends PlaybackServiceMediaPlayer {
         executor.submit(() -> {
             playerLock.lock();
             try {
-                playMediaObject(playable, false, stream, startWhenPrepared, prepareImmediately);
+                playMediaObject(playable, new MediaObjectSettings(false, stream, startWhenPrepared, prepareImmediately));
             } catch (RuntimeException e) {
                 e.printStackTrace();
                 throw e;
@@ -227,79 +227,97 @@ public class LocalPSMP extends PlaybackServiceMediaPlayer {
      *
      * @see #playMediaObject(Playable, boolean, boolean, boolean)
      */
-    private void playMediaObject(@NonNull final Playable playable, final boolean forceReset, final boolean stream, final boolean startWhenPrepared, final boolean prepareImmediately) {
+    private void playMediaObject(@NonNull final Playable playable, MediaObjectSettings settings) {
         if (!playerLock.isHeldByCurrentThread()) {
             throw new IllegalStateException("method requires playerLock");
         }
-
-
         if (media != null) {
-            if (!forceReset && media.getIdentifier().equals(playable.getIdentifier())
-                    && playerStatus == PlayerStatus.PLAYING) {
+            if (checkMediaAlreadyPlaying(playable, settings)) {
                 // episode is already playing -> ignore method call
                 Log.d(TAG, "Method call to playMediaObject was ignored: media file already playing.");
                 return;
             } else {
                 // stop playback of this episode
-                if (playerStatus == PlayerStatus.PAUSED || playerStatus == PlayerStatus.PLAYING || playerStatus == PlayerStatus.PREPARED) {
-                    mediaPlayer.stop();
-                }
-                // set temporarily to pause in order to update list with current position
-                if (playerStatus == PlayerStatus.PLAYING) {
-                    callback.onPlaybackPause(media, getPosition());
-                }
-
-                if (!media.getIdentifier().equals(playable.getIdentifier())) {
-                    final Playable oldMedia = media;
-                    executor.submit(() -> callback.onPostPlayback(oldMedia, false, false, true));
-                }
-
-                setPlayerStatus(PlayerStatus.INDETERMINATE, null);
+                stopPlayback(playable);
             }
         }
-
-        this.media = playable;
-        this.stream = stream;
-        this.mediaType = media.getMediaType();
-        this.videoSize = null;
-        createMediaPlayer();
-        LocalPSMP.this.startWhenPrepared.set(startWhenPrepared);
-        setPlayerStatus(PlayerStatus.INITIALIZING, media);
+        updateMediaObjects(playable, settings);
         try {
             callback.ensureMediaInfoLoaded(media);
             callback.onMediaChanged(false);
             setPlaybackParams(PlaybackSpeedUtils.getCurrentPlaybackSpeed(media), UserPreferences.isSkipSilence());
-            if (stream) {
-                if (playable instanceof FeedMedia) {
-                    FeedMedia feedMedia = (FeedMedia) playable;
-                    FeedPreferences preferences = feedMedia.getItem().getFeed().getPreferences();
-                    mediaPlayer.setDataSource(
-                            media.getStreamUrl(),
-                            preferences.getUsername(),
-                            preferences.getPassword());
-                } else {
-                    mediaPlayer.setDataSource(media.getStreamUrl());
-                }
-            } else if (media.getLocalMediaUrl() != null && new File(media.getLocalMediaUrl()).canRead()) {
-                mediaPlayer.setDataSource(media.getLocalMediaUrl());
-            } else {
+            boolean finishedMediaPlayerInit = initMediaPlayer(playable, settings);
+            if(!finishedMediaPlayerInit) {
                 throw new IOException("Unable to read local file " + media.getLocalMediaUrl());
             }
-            UiModeManager uiModeManager = (UiModeManager) context.getSystemService(Context.UI_MODE_SERVICE);
-            if (uiModeManager.getCurrentModeType() != Configuration.UI_MODE_TYPE_CAR) {
-                setPlayerStatus(PlayerStatus.INITIALIZED, media);
-            }
-
-            if (prepareImmediately) {
-                setPlayerStatus(PlayerStatus.PREPARING, media);
-                mediaPlayer.prepare();
-                onPrepared(startWhenPrepared);
-            }
-
+            updateMediaPlayerStatus(settings);
         } catch (IOException | IllegalStateException e) {
             e.printStackTrace();
             setPlayerStatus(PlayerStatus.ERROR, null);
             EventBus.getDefault().postSticky(new PlayerErrorEvent(e.getLocalizedMessage()));
+        }
+    }
+
+    private boolean checkMediaAlreadyPlaying(@NonNull final Playable playable, MediaObjectSettings settings){
+        return settings.forceReset && media.getIdentifier().equals(playable.getIdentifier())  && playerStatus == PlayerStatus.PLAYING;
+    }
+
+    private void stopPlayback(@NonNull final Playable playable){
+        if (playerStatus == PlayerStatus.PAUSED || playerStatus == PlayerStatus.PLAYING || playerStatus == PlayerStatus.PREPARED) {
+            mediaPlayer.stop();
+        }
+        // set temporarily to pause in order to update list with current position
+        if (playerStatus == PlayerStatus.PLAYING) {
+            callback.onPlaybackPause(media, getPosition());
+        }
+
+        if (!media.getIdentifier().equals(playable.getIdentifier())) {
+            final Playable oldMedia = media;
+            executor.submit(() -> callback.onPostPlayback(oldMedia, false, false, true));
+        }
+        setPlayerStatus(PlayerStatus.INDETERMINATE, null);
+    }
+
+    private void updateMediaObjects(@NonNull final Playable playable, MediaObjectSettings settings){
+        this.media = playable;
+        this.stream = settings.stream;
+        this.mediaType = media.getMediaType();
+        this.videoSize = null;
+        createMediaPlayer();
+        this.startWhenPrepared.set(settings.startWhenPrepared);
+        setPlayerStatus(PlayerStatus.INITIALIZING, media);
+    }
+
+    private boolean initMediaPlayer(@NonNull final Playable playable, MediaObjectSettings settings) throws IOException {
+        if (settings.stream) {
+            if (playable instanceof FeedMedia) {
+                FeedMedia feedMedia = (FeedMedia) playable;
+                FeedPreferences preferences = feedMedia.getItem().getFeed().getPreferences();
+                mediaPlayer.setDataSource(
+                        media.getStreamUrl(),
+                        preferences.getUsername(),
+                        preferences.getPassword());
+            } else {
+                mediaPlayer.setDataSource(media.getStreamUrl());
+            }
+            return true;
+        } else if (media.getLocalMediaUrl() != null && new File(media.getLocalMediaUrl()).canRead()) {
+            mediaPlayer.setDataSource(media.getLocalMediaUrl());
+            return true;
+        }
+        return false;
+    }
+
+    private void updateMediaPlayerStatus(MediaObjectSettings settings) throws IOException{
+        UiModeManager uiModeManager = (UiModeManager) context.getSystemService(Context.UI_MODE_SERVICE);
+        if (uiModeManager.getCurrentModeType() != Configuration.UI_MODE_TYPE_CAR) {
+            setPlayerStatus(PlayerStatus.INITIALIZED, media);
+        }
+
+        if (settings.prepareImmediately) {
+            setPlayerStatus(PlayerStatus.PREPARING, media);
+            mediaPlayer.prepare();
+            onPrepared(settings.startWhenPrepared);
         }
     }
 
@@ -468,7 +486,7 @@ public class LocalPSMP extends PlaybackServiceMediaPlayer {
             Log.d(TAG, "reinit()");
             releaseWifiLockIfNecessary();
             if (media != null) {
-                playMediaObject(media, true, stream, startWhenPrepared.get(), false);
+                playMediaObject(media, new MediaObjectSettings(true, stream, startWhenPrepared.get(), false));
             } else if (mediaPlayer != null) {
                 mediaPlayer.reset();
             } else {
@@ -965,7 +983,7 @@ public class LocalPSMP extends PlaybackServiceMediaPlayer {
                     callback.onPlaybackEnded(nextMedia.getMediaType(), !playNextEpisode);
                     // setting media to null signals to playMediaObject() that we're taking care of post-playback processing
                     media = null;
-                    playMediaObject(nextMedia, false, !nextMedia.localFileAvailable(), playNextEpisode, playNextEpisode);
+                    playMediaObject(nextMedia, new MediaObjectSettings(false, !nextMedia.localFileAvailable(), playNextEpisode, playNextEpisode));
                 }
             }
             if (shouldContinue || toStoppedState) {
